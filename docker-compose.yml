@@ -1,0 +1,20 @@
+services:
+  kryptto-api:
+    build: .
+    container_name: kryptto-api
+    ports:
+      - '8080:8080'
+    environment:
+      # auto = live Binance when reachable, built-in simulator otherwise
+      MARKET_DATA_MODE: auto
+      CORS_ORIGINS: '*'
+      SERVE_PREVIEW: 'true'
+      # override secrets in production:
+      JWT_ACCESS_SECRET: change-me-access
+      JWT_REFRESH_SECRET: change-me-refresh
+    volumes:
+      - kryptto-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  kryptto-data:
