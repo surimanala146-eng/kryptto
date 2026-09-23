@@ -1,12 +1,13 @@
 # kryptto
 
-**Market-data + paper-trading backend, built to power a TradingView-class
-terminal frontend.**
+**Open-source trading platform: a TradingView-class terminal frontend
+(OpenCharts) powered by a dedicated market-data + paper-trading backend.**
 
-kryptto implements the data contract of professional open-source trading
-terminals ( researched & analysed in
-[docs/RESEARCH.md](docs/RESEARCH.md) — recommendation: **OpenCharts**), so a
-ready-made frontend can be pointed at it with minimal glue code.
+The frontend landscape was researched and analysed in
+[docs/RESEARCH.md](docs/RESEARCH.md); the winner — **OpenCharts** (MIT,
+deliberately backend-agnostic) — is vendored in [`frontend/`](frontend) and
+wired to the kryptto backend in [`server/`](server) through a thin, tested
+adapter layer (`frontend/src/services/backend/`).
 
 - **Live market data** from Binance's public REST + WebSocket APIs (no API
   key), with an **always-available simulator fallback** — the platform boots
@@ -28,18 +29,21 @@ ready-made frontend can be pointed at it with minimal glue code.
 ## Quick start
 
 ```bash
-# option A — docker
+# option A — docker (backend + its built-in preview page)
 docker compose up --build          # → http://localhost:8080
 
-# option B — node 22.5+
-cd server
-npm install
-npm run build
-npm start                          # → http://localhost:8080
+# option B — full stack (backend + OpenCharts terminal)
+cd server  && npm install && npm run build && npm start   # API on :8080
+cd frontend && npm install && npm run dev                 # terminal on :5173
 ```
 
-Open **http://localhost:8080/** — the preview terminal auto-provisions a demo
-session with a $100k paper account and live (or simulated) prices.
+Open **http://localhost:5173** — the OpenCharts terminal boots a one-click
+demo session against the backend: $100k paper account, live market data
+(Binance when reachable, built-in simulator otherwise), server-side order
+matching with TP/SL, and authenticated WebSocket streams.
+
+The backend also serves a minimal single-file reference client at
+http://localhost:8080/ (`SERVE_PREVIEW=true`).
 
 ```bash
 # poke the API directly
@@ -55,7 +59,10 @@ curl -s -X POST localhost:8080/api/orders \
 ## Repository layout
 
 ```
-├── server/               # NestJS backend (this deliverable)
+├── frontend/             # OpenCharts terminal (MIT, vendored) + kryptto adapter
+│   ├── src/services/backend/   # API + WS adapter for the kryptto backend
+│   └── src/services/demo/      # upstream in-browser demo layer (kept working)
+├── server/               # NestJS backend
 │   ├── src/
 │   │   ├── auth/         # JWT access+refresh, demo sessions
 │   │   ├── market-data/  # symbols, ticks, candles, orderbooks, stats
@@ -88,12 +95,11 @@ See [`server/.env.example`](server/.env.example). Highlights:
 ## Testing
 
 ```bash
-cd server
-npm test          # unit (simulator) + e2e (auth → market data → trading → ws)
+cd server   && npm test   # 22 tests: simulator unit + full API e2e (in-memory DB)
+cd frontend && npm test   # 34 tests: upstream suite + kryptto WS-translation unit tests
 ```
 
-21 tests run against an in-memory database and the simulated market — no
-network, no services, no flakiness.
+No network, no external services, no flakiness.
 
 ## Documentation
 
@@ -108,7 +114,7 @@ network, no services, no flakiness.
 - [x] Paper trading: orders, netting, TP/SL, margin, ledger, equity, stats
 - [x] Realtime: channel hub with auth + interest-driven streaming
 - [x] OpenAPI spec, Swagger UI, terminal preview, e2e tests, Docker
-- [ ] Frontend phase: clone OpenCharts, implement its `api`/`ws` facades
+- [x] Frontend phase: OpenCharts vendored + `api`/`ws` facades implemented & tested
 - [ ] Postgres store option, multi-venue aggregation, real order book
 
 ## License

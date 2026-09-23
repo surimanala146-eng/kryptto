@@ -64,17 +64,21 @@ export class PlaceOrderDto {
 }
 
 export class AmendProtectionDto {
+  /**
+   * undefined = keep current value; null = clear the protection.
+   * (IsOptional skips validation for both null and undefined.)
+   */
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @IsPositive()
-  takeProfit?: number;
+  takeProfit?: number | null;
 
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @IsPositive()
-  stopLoss?: number;
+  stopLoss?: number | null;
 }
 
 export class ClosePositionDto {

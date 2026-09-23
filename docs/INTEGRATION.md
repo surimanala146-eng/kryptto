@@ -1,5 +1,12 @@
 # Integration guide — wiring a terminal frontend to kryptto
 
+> **Status: implemented.** The OpenCharts terminal is vendored in
+> [`frontend/`](../frontend) with this guide applied — see
+> `frontend/src/services/backend/` (adapter), `frontend/README.md` (change
+> list) and `frontend/src/__tests__/kryptto-ws-client.test.ts` (translation
+> tests). The sections below remain as the reference for wiring any *other*
+> frontend.
+
 This guide shows how to connect an OpenCharts-class terminal (or any
 frontend) to the kryptto backend. The full HTTP/WebSocket reference is in
 [API.md](API.md); the OpenAPI spec is [`openapi.json`](../openapi.json).

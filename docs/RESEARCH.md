@@ -124,7 +124,9 @@ mirrors these schemas 1:1):
 | Persistence | SQLite via `node:sqlite` | Zero native dependencies, single-file ops, trivially swappable for Postgres later |
 | API style | REST under `/api` + plain `ws` channels | Exactly what the OpenCharts `request()`/`wsClient` surface expects |
 
-**Next step** (when we move to the frontend phase): clone OpenCharts, delete
-`src/services/demo/*`, and implement `api.ts` + `ws.ts` against kryptto's
-endpoints — the integration guide ([docs/INTEGRATION.md](INTEGRATION.md))
-contains drop-in code for both.
+**Update (frontend phase, completed):** OpenCharts is vendored in
+[`frontend/`](../frontend) and connected through
+`frontend/src/services/backend/` — an `api` facade + a translating
+`KrypttoWsClient`, with the upstream demo layer kept selectable via
+`VITE_DATA_SOURCE=demo`. See [docs/INTEGRATION.md](INTEGRATION.md) for the
+reference wiring and `frontend/README.md` for the full change list.

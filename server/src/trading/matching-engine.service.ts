@@ -128,8 +128,9 @@ export class MatchingEngineService implements OnModuleInit, OnModuleDestroy {
     if (order.status !== 'OPEN') {
       throw ApiError.conflict('Only OPEN orders can be amended', 'ORDER_NOT_AMENDABLE');
     }
-    const takeProfit = dto.takeProfit ?? order.takeProfit;
-    const stopLoss = dto.stopLoss ?? order.stopLoss;
+    // undefined keeps the current value; null clears it.
+    const takeProfit = dto.takeProfit !== undefined ? dto.takeProfit : order.takeProfit;
+    const stopLoss = dto.stopLoss !== undefined ? dto.stopLoss : order.stopLoss;
     this.store.updateOrderProtection(order.id, takeProfit, stopLoss, nowIso());
     const updated = this.store.getOrder(order.id) as Order;
     this.syncResting(updated);
@@ -142,8 +143,9 @@ export class MatchingEngineService implements OnModuleInit, OnModuleDestroy {
     if (!position) throw ApiError.notFound('Position not found', 'POSITION_NOT_FOUND');
     const account = this.requireAccount(userId, position.accountId);
 
-    const takeProfit = dto.takeProfit ?? position.takeProfit;
-    const stopLoss = dto.stopLoss ?? position.stopLoss;
+    // undefined keeps the current value; null clears it.
+    const takeProfit = dto.takeProfit !== undefined ? dto.takeProfit : position.takeProfit;
+    const stopLoss = dto.stopLoss !== undefined ? dto.stopLoss : position.stopLoss;
     if (takeProfit != null && stopLoss != null && takeProfit <= stopLoss) {
       throw ApiError.unprocessable('takeProfit must be above stopLoss', 'INVALID_PROTECTION');
     }

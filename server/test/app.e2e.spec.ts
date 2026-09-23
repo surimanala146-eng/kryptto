@@ -221,6 +221,50 @@ describe('kryptto API (e2e)', () => {
     expect(stats.body.totalTrades).toBe(1);
   });
 
+  it('amends and clears take-profit / stop-loss with null', async () => {
+    // open a fresh position with protection
+    const order = await request(httpServer)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ accountId, symbolName: 'ADAUSDT', side: 'BUY', type: 'MARKET', quantity: 100, takeProfit: 999, stopLoss: 0.01 })
+      .expect(201);
+    expect(order.body.takeProfit).toBe(999);
+
+    const position = (
+      await request(httpServer)
+        .get(`/api/accounts/${accountId}/positions`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200)
+    ).body.find((p: any) => p.symbolName === 'ADAUSDT');
+    expect(position.takeProfit).toBe(999);
+    expect(position.stopLoss).toBe(0.01);
+
+    // amend both
+    const amended = await request(httpServer)
+      .patch(`/api/positions/${position.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ takeProfit: 9999, stopLoss: 0.001 })
+      .expect(200);
+    expect(amended.body.takeProfit).toBe(9999);
+    expect(amended.body.stopLoss).toBe(0.001);
+
+    // clear both with explicit null (undefined would mean "keep")
+    const cleared = await request(httpServer)
+      .patch(`/api/positions/${position.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ takeProfit: null, stopLoss: null })
+      .expect(200);
+    expect(cleared.body.takeProfit).toBeNull();
+    expect(cleared.body.stopLoss).toBeNull();
+
+    // side-sanity still enforced
+    await request(httpServer)
+      .patch(`/api/positions/${position.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ takeProfit: 0.0001 }) // below entry for a LONG
+      .expect(422);
+  });
+
   it('rejects oversized orders with INSUFFICIENT_MARGIN', async () => {
     const res = await request(httpServer)
       .post('/api/orders')
