@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>kryptto · terminal preview</title>
+<style>
+  :root {
+    --bg: #0b0e14; --panel: #11151f; --panel2: #151a26; --border: #1e2534;
+    --text: #d7dce6; --muted: #77809328; --muted-t: #778093; --accent: #f0b90b;
+    --up: #0ecb81; --down: #f6465d; --blue: #4f8ef7;
+    --mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 13px/1.45 -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  input, select { font: inherit; color: var(--text); background: var(--panel2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; width: 100%; outline: none; }
+  input:focus, select:focus { border-color: var(--blue); }
+
+  /* header */
+  header {
+    display: flex; align-items: center; gap: 14px; padding: 0 14px; height: 48px;
+    background: var(--panel); border-bottom: 1px solid var(--border); flex: none;
+  }
+  .logo { display: flex; align-items: baseline; gap: 8px; }
+  .logo b { font-size: 16px; letter-spacing: 1px; color: var(--accent); }
+  .logo span { color: var(--muted-t); font-size: 11px; }
+  .badge { font: 10px/1 var(--mono); padding: 4px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted-t); }
+  .badge.live { color: var(--up); border-color: var(--up); }
+  .badge.sim { color: var(--accent); border-color: var(--accent); }
+  .ws-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--down); display: inline-block; margin-right: 6px; }
+  .ws-dot.on { background: var(--up); }
+  .spacer { flex: 1; }
+  .user-chip { color: var(--muted-t); font-size: 11px; }
+  .btn {
+    padding: 7px 14px; border-radius: 7px; background: var(--accent); color: #14181f;
+    font-weight: 600; font-size: 12px;
+  }
+  .btn.ghost { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
+
+  /* layout */
+  main { flex: 1; display: grid; grid-template-columns: 232px 1fr 268px; min-height: 0; }
+  .col { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+  .left { border-right: 1px solid var(--border); background: var(--panel); }
+  .right { border-left: 1px solid var(--border); background: var(--panel); overflow-y: auto; }
+
+  /* watchlist */
+  .watch-head { padding: 10px 12px 6px; }
+  .watch-head input { background: var(--bg); font-size: 12px; }
+  .watch { flex: 1; overflow-y: auto; padding-bottom: 10px; }
+  .wrow {
+    display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 7px 12px;
+    cursor: pointer; border-left: 2px solid transparent;
+  }
+  .wrow:hover { background: var(--panel2); }
+  .wrow.active { background: var(--panel2); border-left-color: var(--accent); }
+  .wrow .sym { font-weight: 600; font-size: 12px; }
+  .wrow .name { color: var(--muted-t); font-size: 10px; grid-column: 1; }
+  .wrow .px { text-align: right; font-family: var(--mono); font-size: 12px; }
+  .wrow .chg { text-align: right; font-family: var(--mono); font-size: 10px; }
+  .up { color: var(--up); } .down { color: var(--down); }
+
+  /* center */
+  .center { display: flex; flex-direction: column; min-height: 0; }
+  .symbol-bar {
+    display: flex; align-items: center; gap: 18px; padding: 10px 16px;
+    border-bottom: 1px solid var(--border); flex: none; flex-wrap: wrap;
+  }
+  .symbol-bar .big { font-size: 18px; font-weight: 700; }
+  .symbol-bar .last { font-family: var(--mono); font-size: 18px; font-weight: 600; }
+  .kv { color: var(--muted-t); font-size: 11px; }
+  .kv b { color: var(--text); font-family: var(--mono); font-weight: 500; }
+  .tfs { margin-left: auto; display: flex; gap: 4px; }
+  .tf { padding: 4px 9px; border-radius: 6px; font-family: var(--mono); font-size: 11px; color: var(--muted-t); }
+  .tf.active { background: var(--panel2); color: var(--accent); }
+  .chart-wrap { flex: 1; min-height: 180px; position: relative; background: var(--bg); }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* tabs + tables */
+  .tabs { display: flex; gap: 2px; padding: 8px 12px 0; border-top: 1px solid var(--border); flex: none; background: var(--panel); }
+  .tab { padding: 7px 12px; border-radius: 7px 7px 0 0; color: var(--muted-t); font-size: 12px; }
+  .tab.active { background: var(--bg); color: var(--text); }
+  .table-panel { height: 200px; overflow: auto; background: var(--bg); border-top: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  th { position: sticky; top: 0; text-align: left; padding: 7px 12px; color: var(--muted-t); font-weight: 500; font-size: 10.5px; background: var(--panel); border-bottom: 1px solid var(--border); }
+  td { padding: 6px 12px; border-bottom: 1px solid #161b28; font-family: var(--mono); white-space: nowrap; }
+  td.pl { text-align: right; }
+  .pill { font-size: 9.5px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--border); }
+  .pill.buy, .pill.long { color: var(--up); border-color: var(--up); }
+  .pill.sell, .pill.short { color: var(--down); border-color: var(--down); }
+  .empty { color: var(--muted-t); text-align: center; padding: 30px 0; }
+
+  /* right — ticket + account */
+  .panel-title { padding: 12px 14px 8px; font-size: 11px; letter-spacing: .12em; color: var(--muted-t); text-transform: uppercase; }
+  .ticket { padding: 0 14px 14px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+  .seg button { padding: 8px; border-radius: 7px; background: var(--panel2); border: 1px solid var(--border); font-weight: 700; }
+  .seg button.buy.active { background: var(--up); color: #062b1c; border-color: var(--up); }
+  .seg button.sell.active { background: var(--down); color: #3d0a12; border-color: var(--down); }
+  .field { margin-bottom: 8px; }
+  .field label { display: block; color: var(--muted-t); font-size: 10.5px; margin-bottom: 3px; }
+  .field input, .field select { font-family: var(--mono); font-size: 12px; }
+  .submit { width: 100%; padding: 10px; border-radius: 8px; font-weight: 700; margin-top: 4px; }
+  .submit.buy { background: var(--up); color: #062b1c; }
+  .submit.sell { background: var(--down); color: #3d0a12; }
+  .account-box { border-top: 1px solid var(--border); padding: 0 14px 14px; }
+  .acct-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+  .acct-grid .kv b { font-size: 12.5px; }
+  .statrow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .stat { background: var(--panel2); border: 1px solid var(--border); border-radius: 7px; padding: 5px 9px; font-size: 10px; color: var(--muted-t); }
+  .stat b { display: block; color: var(--text); font-family: var(--mono); font-size: 12px; font-weight: 600; }
+
+  /* toasts */
+  #toasts { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 50; }
+  .toast { background: var(--panel2); border: 1px solid var(--border); border-left: 3px solid var(--blue); padding: 10px 16px; border-radius: 8px; font-size: 12px; min-width: 260px; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
+  .toast.ok { border-left-color: var(--up); } .toast.err { border-left-color: var(--down); }
+
+  /* boot overlay */
+  #boot { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px; z-index: 100; }
+  #boot .logo b { font-size: 30px; }
+  #boot p { color: var(--muted-t); }
+  .spin { width: 26px; height: 26px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: r 0.9s linear infinite; }
+  @keyframes r { to { transform: rotate(360deg); } }
+  @media (max-width: 980px) { main { grid-template-columns: 1fr; } .left, .right { display: none; } }
+</style>
+</head>
+<body>
+
+<div id="boot">
+  <div class="logo"><b>kryptto</b></div>
+  <div class="spin"></div>
+  <p>starting demo session…</p>
+</div>
+
+<header>
+  <div class="logo"><b>kryptto</b><span>paper trading terminal · API preview</span></div>
+  <span class="badge sim" id="mode-badge">…</span>
+  <span class="badge" id="ws-badge"><span class="ws-dot" id="ws-dot"></span><span id="ws-label">ws</span></span>
+  <span class="spacer"></span>
+  <span class="user-chip" id="user-chip"></span>
+  <button class="btn ghost" id="btn-reset">New demo session</button>
+</header>
+
+<main>
+  <section class="col left">
+    <div class="watch-head"><input id="watch-search" placeholder="Filter symbols…" /></div>
+    <div class="watch" id="watch"></div>
+  </section>
+
+  <section class="col center">
+    <div class="symbol-bar">
+      <span class="big" id="sym-name">—</span>
+      <span class="last" id="sym-last">—</span>
+      <span class="chg" id="sym-chg">—</span>
+      <span class="kv">bid <b id="sym-bid">—</b></span>
+      <span class="kv">ask <b id="sym-ask">—</b></span>
+      <span class="kv">24h high <b id="sym-high">—</b></span>
+      <span class="kv">24h low <b id="sym-low">—</b></span>
+      <div class="tfs" id="tfs"></div>
+    </div>
+    <div class="chart-wrap"><canvas id="chart"></canvas></div>
+    <div class="tabs" id="tabs"></div>
+    <div class="table-panel"><div id="table-host"><div class="empty">no data</div></div></div>
+  </section>
+
+  <section class="col right">
+    <div class="panel-title">Order ticket</div>
+    <div class="ticket">
+      <div class="seg">
+        <button id="side-buy" class="buy active">BUY / LONG</button>
+        <button id="side-sell" class="sell">SELL / SHORT</button>
+      </div>
+      <div class="field"><label>Type</label>
+        <select id="ord-type"><option>MARKET</option><option>LIMIT</option><option>STOP</option></select>
+      </div>
+      <div class="field"><label>Quantity</label><input id="ord-qty" type="number" step="any" min="0" placeholder="0.5" /></div>
+      <div class="field" id="f-price" style="display:none"><label>Limit price</label><input id="ord-price" type="number" step="any" min="0" /></div>
+      <div class="field" id="f-stop" style="display:none"><label>Stop price</label><input id="ord-stop" type="number" step="any" min="0" /></div>
+      <div class="field"><label>Take profit <i style="color:var(--muted-t)">(optional)</i></label><input id="ord-tp" type="number" step="any" min="0" /></div>
+      <div class="field"><label>Stop loss <i style="color:var(--muted-t)">(optional)</i></label><input id="ord-sl" type="number" step="any" min="0" /></div>
+      <button class="submit buy" id="btn-submit">Place BUY</button>
+    </div>
+    <div class="account-box">
+      <div class="panel-title" style="padding-left:0">Account</div>
+      <div class="acct-grid">
+        <div class="kv">Balance<b id="a-bal">—</b></div>
+        <div class="kv">Equity<b id="a-eq">—</b></div>
+        <div class="kv">Used margin<b id="a-mar">—</b></div>
+        <div class="kv">Free margin<b id="a-free">—</b></div>
+      </div>
+      <div class="statrow" id="stats-row"></div>
+    </div>
+  </section>
+</main>
+
+<div id="toasts"></div>
+
+<script>
+'use strict';
+/* ─────────────────────────────────────────────────────────────────────────
+   kryptto terminal preview — single-file reference client.
+   Exercises every part of the API contract: JWT auth (demo login + refresh),
+   REST market data, REST trading, and the /ws channel protocol.
+   ───────────────────────────────────────────────────────────────────────── */
+
+const state = {
+  token: null, refreshToken: null, user: null, accountId: null,
+  symbols: [], symbolByName: new Map(), prices: new Map(), stats: new Map(),
+  activeSymbol: 'BTCUSDT', timeframe: '1m',
+  candles: [], ws: null, wsState: 'disconnected',
+  side: 'BUY', positions: [], orders: [], fills: [], ledger: [], account: null, statsData: null,
+  tab: 'positions', filter: '',
+};
+
+const $ = (id) => document.getElementById(id);
+const fmt = (v, d = 2) => v == null || isNaN(v) ? '—' : Number(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+const fmtPx = (v, digits) => v == null ? '—' : Number(v).toLocaleString('en-US', { maximumFractionDigits: Math.max(digits ?? 2, 2) });
+const sign = (v) => (v > 0 ? '+' : '') + fmt(v);
+const cls = (v) => (v > 0 ? 'up' : v < 0 ? 'down' : '');
+
+function toast(message, kind = 'info') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + (kind === 'ok' ? 'ok' : kind === 'err' ? 'err' : '');
+  el.textContent = message;
+  $('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 4200);
+}
+
+/* ── API client with token refresh ─────────────────────────────────────── */
+async function api(path, options = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  if (state.token) headers.Authorization = 'Bearer ' + state.token;
+  const res = await fetch('api' + path, { ...options, headers });
+  if (res.status === 401 && state.refreshToken && !path.startsWith('/auth/')) {
+    const ok = await tryRefresh();
+    if (ok) return api(path, options);
+  }
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    const err = new Error(body?.error?.message || ('HTTP ' + res.status));
+    err.code = body?.error?.code; err.details = body?.error?.details;
+    throw err;
+  }
+  return body;
+}
+
+async function tryRefresh() {
+  try {
+    const res = await fetch('api/auth/refresh', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: state.refreshToken }),
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    state.token = data.accessToken; state.refreshToken = data.refreshToken;
+    persist();
+    return true;
+  } catch { return false; }
+}
+
+function persist() {
+  localStorage.setItem('kryptto_session', JSON.stringify({
+    token: state.token, refreshToken: state.refreshToken, user: state.user, accountId: state.accountId,
+  }));
+}
+
+function restore() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('kryptto_session') || 'null');
+    if (saved?.token && saved?.refreshToken) Object.assign(state, saved);
+  } catch {}
+}
+
+/* ── boot ──────────────────────────────────────────────────────────────── */
+async function boot() {
+  restore();
+  try {
+    await api('/auth/me');
+  } catch {
+    await demoLogin(true);
+  }
+  await loadStatic();
+  await Promise.all([loadAccount(), loadStats()]);
+  connectWs();
+  await loadCandles();
+  renderAll();
+  $('boot').remove();
+}
+
+async function demoLogin(fresh = false) {
+  const data = await api('/auth/demo', { method: 'POST' });
+  state.token = data.accessToken; state.refreshToken = data.refreshToken;
+  state.user = data.user; state.accountId = null;
+  persist();
+  if (!fresh) { window.location.reload(); }
+}
+
+async function loadStatic() {
+  const symbols = await api('/market-data/symbols');
+  state.symbols = symbols;
+  state.symbolByName = new Map(symbols.map((s) => [s.name, s]));
+  const status = await api('/status');
+  setModeBadge(status.marketData);
+}
+
+async function loadAccount() {
+  const accounts = await api('/accounts/me/list');
+  const active = accounts.find((a) => a.id === state.accountId) || accounts[0];
+  if (!active) throw new Error('no accounts');
+  state.accountId = active.id;
+  state.account = active;
+  persist();
+}
+
+async function loadStats() {
+  try { state.statsData = await api(`/accounts/${state.accountId}/stats`); } catch {}
+}
+
+/* ── websocket ─────────────────────────────────────────────────────────── */
+function connectWs() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const socket = new WebSocket(`${proto}://${location.host}/ws?token=${encodeURIComponent(state.token)}`);
+  state.ws = socket;
+
+  socket.onopen = () => {
+    state.wsState = 'connected'; renderWs();
+    sub('account'); sub('status'); sub('ticks');
+    sub(`candles:${state.activeSymbol}:${state.timeframe}`);
+    for (const s of state.symbols) sub(`stats:${s.name}`);
+  };
+  socket.onclose = () => {
+    state.wsState = 'disconnected'; renderWs();
+    setTimeout(() => { if (state.ws === socket) connectWs(); }, 2000);
+  };
+  socket.onerror = () => socket.close();
+  socket.onmessage = (e) => {
+    let msg; try { msg = JSON.parse(e.data); } catch { return; }
+    if (msg.type === 'authenticated' || msg.type === 'subscribed' || msg.type === 'hello') return;
+    if (msg.type === 'error') { toast(msg.message, 'err'); return; }
+    if (!msg.channel) return;
+    handleEvent(msg.channel, msg.event);
+  };
+}
+
+function sub(channel) { state.ws?.send(JSON.stringify({ op: 'subscribe', channel })); }
+
+function handleEvent(channel, event) {
+  if (channel === 'status') { setModeBadge(event); return; }
+  if (channel === 'ticks') { onTick(event); return; }
+  if (channel.startsWith('stats:')) {
+    state.stats.set(event.symbol, event);
+    renderWatchlist();
+    if (event.symbol === state.activeSymbol) renderSymbolBar();
+    return;
+  }
+  if (channel.startsWith('candles:')) { onCandle(event); return; }
+  if (channel === 'account') { onAccountEvent(event); return; }
+}
+
+function onTick(tick) {
+  state.prices.set(tick.symbol, tick);
+  renderWatchlist();
+  if (tick.symbol === state.activeSymbol) renderSymbolBar();
+}
+
+function onCandle(candle) {
+  const bars = state.candles;
+  const last = bars[bars.length - 1];
+  if (last && last.time === candle.time) bars[bars.length - 1] = candle;
+  else if (!last || candle.time > last.time) bars.push(candle);
+  if (bars.length > 600) bars.shift();
+  drawChart();
+}
+
+function onAccountEvent(event) {
+  switch (event.type) {
+    case 'order':
+      if (event.order?.status === 'OPEN') toast(`Order resting: ${event.order.side} ${event.order.quantity} ${event.order.symbolName}`);
+      refreshTrading();
+      break;
+    case 'fill':
+      toast(`Filled ${event.fill?.side} ${event.fill?.quantity} ${event.fill?.symbolName} @ ${event.fill?.price}`, 'ok');
+      refreshTrading();
+      break;
+    case 'position_closed':
+      toast(`Position closed: ${event.closed?.realizedPnl >= 0 ? '+' : ''}${fmt(event.closed?.realizedPnl)} USD (${event.closed?.symbolName})`, event.closed?.realizedPnl >= 0 ? 'ok' : 'err');
+      refreshTrading();
+      break;
+    case 'balance':
+      state.account = event.account;
+      renderAccount();
+      break;
+    case 'position':
+      refreshTrading();
+      break;
+  }
+}
+
+let refreshTimer = null;
+function refreshTrading() {
+  if (refreshTimer) return;
+  refreshTimer = setTimeout(async () => {
+    refreshTimer = null;
+    try {
+      await Promise.all([loadAccount(), loadTrading(), loadStats()]);
+      renderAll();
+    } catch (e) { toast(e.message, 'err'); }
+  }, 150);
+}
+
+async function loadTrading() {
+  const acc = state.accountId;
+  const [positions, orders, fills, ledger] = await Promise.all([
+    api(`/accounts/${acc}/positions`), api(`/accounts/${acc}/orders?pageSize=50`),
+    api(`/accounts/${acc}/fills?pageSize=50`), api(`/accounts/${acc}/ledger?pageSize=50`),
+  ]);
+  state.positions = positions; state.orders = orders.data; state.fills = fills.data; state.ledger = ledger.data;
+}
+
+/* ── candles ───────────────────────────────────────────────────────────── */
+async function loadCandles() {
+  const data = await api(`/market-data/candles?symbol=${state.activeSymbol}&timeframe=${state.timeframe}&limit=300`);
+  state.candles = data.candles;
+  drawChart();
+}
+
+/* ── render ────────────────────────────────────────────────────────────── */
+function setModeBadge(md) {
+  const badge = $('mode-badge');
+  if (md.mode === 'live') { badge.textContent = 'LIVE · BINANCE'; badge.className = 'badge live'; }
+  else { badge.textContent = 'SIMULATED FEED'; badge.className = 'badge sim'; }
+}
+
+function renderWs() {
+  $('ws-dot').className = 'ws-dot' + (state.wsState === 'connected' ? ' on' : '');
+  $('ws-label').textContent = state.wsState;
+}
+
+function renderWatchlist() {
+  const host = $('watch');
+  const filter = state.filter.toUpperCase();
+  const items = state.symbols.filter((s) => !filter || s.name.includes(filter) || (s.displayName || '').toUpperCase().includes(filter));
+  const html = items.map((s) => {
+    const px = state.prices.get(s.name);
+    const st = state.stats.get(s.name);
+    const chg = st ? st.priceChangePercent : null;
+    return `<div class="wrow ${s.name === state.activeSymbol ? 'active' : ''}" data-sym="${s.name}">
+      <span class="sym">${s.base || s.name}</span>
+      <span class="px">${px ? fmtPx(px.last, s.digits) : '·'}</span>
+      <span class="name">${s.displayName || ''}</span>
+      <span class="chg ${cls(chg)}">${chg == null ? '' : sign(chg) + '%'}</span>
+    </div>`;
+  }).join('');
+  host.innerHTML = html || '<div class="empty">no symbols</div>';
+  host.querySelectorAll('.wrow').forEach((row) => row.onclick = () => selectSymbol(row.dataset.sym));
+}
+
+function renderSymbolBar() {
+  const s = state.symbolByName.get(state.activeSymbol);
+  const px = state.prices.get(state.activeSymbol);
+  const st = state.stats.get(state.activeSymbol);
+  $('sym-name').textContent = state.activeSymbol;
+  if (px) {
+    $('sym-last').textContent = fmtPx(px.last, s?.digits);
+    $('sym-last').className = 'last ' + (st && st.priceChangePercent >= 0 ? 'up' : 'down');
+    $('sym-bid').textContent = fmtPx(px.bid, s?.digits);
+    $('sym-ask').textContent = fmtPx(px.ask, s?.digits);
+  }
+  if (st) {
+    $('sym-chg').textContent = sign(st.priceChangePercent) + '%';
+    $('sym-chg').className = 'chg ' + cls(st.priceChangePercent);
+    $('sym-high').textContent = fmtPx(st.highPrice, s?.digits);
+    $('sym-low').textContent = fmtPx(st.lowPrice, s?.digits);
+  }
+}
+
+function renderTfs() {
+  const host = $('tfs');
+  for (const tf of ['1m', '5m', '15m', '30m', '1h', '4h', '1d']) {
+    const b = document.createElement('button');
+    b.className = 'tf' + (tf === state.timeframe ? ' active' : '');
+    b.textContent = tf;
+    b.onclick = () => selectTimeframe(tf);
+    host.appendChild(b);
+  }
+}
+
+function renderTabs() {
+  const host = $('tabs');
+  for (const [key, label, count] of [['positions', 'Positions', state.positions.length], ['orders', 'Orders', state.orders.length], ['fills', 'Fills', state.fills.length], ['ledger', 'Ledger', state.ledger.length]]) {
+    const b = document.createElement('button');
+    b.className = 'tab' + (key === state.tab ? ' active' : '');
+    b.innerHTML = `${label} ${count ? `<span style="color:var(--accent)">(${count})</span>` : ''}`;
+    b.onclick = () => { state.tab = key; renderTabs(); renderTable(); };
+    host.appendChild(b);
+  }
+}
+
+function renderTable() {
+  const host = $('table-host');
+  const tab = state.tab;
+  if (tab === 'positions') {
+    host.innerHTML = state.positions.length ? `<table><thead><tr>
+      <th>Symbol</th><th>Side</th><th class="pl">Qty</th><th class="pl">Entry</th><th class="pl">Mark</th><th class="pl">P&L</th><th class="pl">TP / SL</th><th></th>
+    </tr></thead><tbody>${state.positions.map((p) => `<tr>
+      <td>${p.symbolName}</td>
+      <td><span class="pill ${p.side.toLowerCase()}">${p.side}</span></td>
+      <td class="pl">${p.quantity}</td>
+      <td class="pl">${fmtPx(p.entryPrice)}</td>
+      <td class="pl">${fmtPx(p.currentPrice)}</td>
+      <td class="pl ${cls(p.unrealizedPnl)}">${sign(p.unrealizedPnl)}</td>
+      <td class="pl" style="color:var(--muted-t)">${p.takeProfit ?? '—'} / ${p.stopLoss ?? '—'}</td>
+      <td><button class="pill" data-close="${p.id}">close</button></td>
+    </tr>`).join('')}</tbody></table>` : '<div class="empty">no open positions — place an order →</div>';
+    host.querySelectorAll('[data-close]').forEach((b) => b.onclick = async () => {
+      try { await api(`/positions/${b.dataset.close}/close`, { method: 'POST', body: '{}' }); } catch (e) { toast(e.message, 'err'); }
+    });
+    return;
+  }
+  if (tab === 'orders') {
+    host.innerHTML = state.orders.length ? `<table><thead><tr>
+      <th>Time</th><th>Symbol</th><th>Side</th><th>Type</th><th class="pl">Qty</th><th class="pl">Price</th><th>Status</th><th></th>
+    </tr></thead><tbody>${state.orders.map((o) => `<tr>
+      <td>${new Date(o.createdAt).toLocaleTimeString()}</td>
+      <td>${o.symbolName}</td>
+      <td><span class="pill ${o.side.toLowerCase()}">${o.side}</span></td>
+      <td>${o.type}</td>
+      <td class="pl">${o.quantity}</td>
+      <td class="pl">${o.avgFillPrice ? fmtPx(o.avgFillPrice) : (o.price ?? o.stopPrice ?? '—')}</td>
+      <td>${o.status}${o.comment ? ` <i style="color:var(--muted-t)">(${o.comment})</i>` : ''}</td>
+      <td>${o.status === 'OPEN' ? `<button class="pill" data-cancel="${o.id}">cancel</button>` : ''}</td>
+    </tr>`).join('')}</tbody></table>` : '<div class="empty">no orders yet</div>';
+    host.querySelectorAll('[data-cancel]').forEach((b) => b.onclick = async () => {
+      try { await api(`/orders/${b.dataset.cancel}`, { method: 'DELETE' }); } catch (e) { toast(e.message, 'err'); }
+    });
+    return;
+  }
+  if (tab === 'fills') {
+    host.innerHTML = state.fills.length ? `<table><thead><tr>
+      <th>Time</th><th>Symbol</th><th>Side</th><th class="pl">Qty</th><th class="pl">Price</th><th class="pl">Fee</th><th class="pl">Realized</th>
+    </tr></thead><tbody>${state.fills.map((f) => `<tr>
+      <td>${new Date(f.createdAt).toLocaleTimeString()}</td><td>${f.symbolName}</td>
+      <td><span class="pill ${f.side.toLowerCase()}">${f.side}</span></td>
+      <td class="pl">${f.quantity}</td><td class="pl">${fmtPx(f.price)}</td>
+      <td class="pl" style="color:var(--muted-t)">${fmt(f.commission, 3)}</td>
+      <td class="pl ${cls(f.realizedPnl ?? 0)}">${f.realizedPnl == null ? '—' : sign(f.realizedPnl)}</td>
+    </tr>`).join('')}</tbody></table>` : '<div class="empty">no fills yet</div>';
+    return;
+  }
+  host.innerHTML = state.ledger.length ? `<table><thead><tr>
+    <th>Time</th><th>Type</th><th class="pl">Amount</th><th class="pl">Balance</th><th>Description</th>
+  </tr></thead><tbody>${state.ledger.map((l) => `<tr>
+    <td>${new Date(l.createdAt).toLocaleTimeString()}</td><td>${l.type}</td>
+    <td class="pl ${cls(l.amount)}">${sign(l.amount)}</td><td class="pl">${fmt(l.balance)}</td>
+    <td style="color:var(--muted-t)">${l.description ?? ''}</td>
+  </tr>`).join('')}</tbody></table>` : '<div class="empty">ledger is empty</div>';
+}
+
+function renderAccount() {
+  const a = state.account;
+  if (!a) return;
+  $('a-bal').textContent = '$' + fmt(a.balance);
+  $('a-eq').textContent = '$' + fmt(a.equity);
+  $('a-mar').textContent = '$' + fmt(a.margin);
+  $('a-free').textContent = '$' + fmt(a.freeMargin);
+  const s = state.statsData;
+  $('stats-row').innerHTML = s ? `
+    <div class="stat">Trades<b>${s.totalTrades}</b></div>
+    <div class="stat">Win rate<b>${fmt(s.winRate, 1)}%</b></div>
+    <div class="stat">Profit factor<b>${fmt(s.profitFactor)}</b></div>
+    <div class="stat">Best / worst<b>${fmt(s.bestTrade)} / ${fmt(s.worstTrade)}</b></div>
+    <div class="stat">Max DD<b>${s.maxDrawdown == null ? '—' : fmt(s.maxDrawdown, 2) + '%'}</b></div>` : '';
+  $('user-chip').textContent = state.user ? `${state.user.email} · ${a.label || a.template?.name || 'paper account'} · ${a.leverage}x` : '';
+}
+
+function renderAll() {
+  renderWatchlist(); renderSymbolBar(); renderTabs(); renderTable(); renderAccount(); renderWs();
+  renderTicket();
+}
+
+/* ── chart (canvas candlesticks, no dependencies) ──────────────────────── */
+function drawChart() {
+  const canvas = $('chart');
+  const wrap = canvas.parentElement;
+  const dpr = window.devicePixelRatio || 1;
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  if (W === 0 || H === 0) return;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const bars = state.candles;
+  if (!bars.length) {
+    ctx.fillStyle = '#778093'; ctx.font = '12px sans-serif';
+    ctx.fillText('waiting for candles…', 14, 24);
+    return;
+  }
+  const padR = 64, padB = 22, padT = 10;
+  const plotW = W - padR - 8, plotH = H - padB - padT;
+  const volH = plotH * 0.16;
+  const priceH = plotH - volH - 8;
+
+  let hi = -Infinity, lo = Infinity, maxVol = 0;
+  for (const b of bars) { hi = Math.max(hi, b.high); lo = Math.min(lo, b.low); maxVol = Math.max(maxVol, b.volume); }
+  const range = (hi - lo) || 1;
+  hi += range * 0.05; lo -= range * 0.05;
+  const y = (p) => padT + priceH - ((p - lo) / (hi - lo)) * priceH;
+  const bw = Math.max(2, (plotW / bars.length) * 0.62);
+  const step = plotW / bars.length;
+
+  // grid + price axis
+  ctx.strokeStyle = '#1a2030'; ctx.fillStyle = '#778093'; ctx.font = '10px ui-monospace, monospace'; ctx.textBaseline = 'middle';
+  for (let i = 0; i <= 5; i++) {
+    const p = lo + ((hi - lo) * i) / 5;
+    const yy = y(p);
+    ctx.beginPath(); ctx.moveTo(8, yy); ctx.lineTo(8 + plotW, yy); ctx.stroke();
+    ctx.fillText(fmtPx(p), 8 + plotW + 6, yy);
+  }
+
+  const lastBar = bars[bars.length - 1];
+  // last price line
+  const lastY = y(lastBar.close);
+  ctx.strokeStyle = '#f0b90b55'; ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(8, lastY); ctx.lineTo(8 + plotW, lastY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#f0b90b';
+  ctx.fillRect(8 + plotW + 2, lastY - 8, padR - 8, 16);
+  ctx.fillStyle = '#14181f'; ctx.font = 'bold 10px ui-monospace, monospace';
+  ctx.fillText(fmtPx(lastBar.close), 8 + plotW + 6, lastY);
+
+  // candles + volume
+  const up = '#0ecb81', down = '#f6465d';
+  bars.forEach((b, i) => {
+    const x = 8 + i * step + step / 2;
+    const color = b.close >= b.open ? up : down;
+    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, y(b.high)); ctx.lineTo(x, y(b.low)); ctx.stroke();
+    const yo = y(b.open), yc = y(b.close);
+    ctx.fillRect(x - bw / 2, Math.min(yo, yc), bw, Math.max(1, Math.abs(yc - yo)));
+    const vh = maxVol ? (b.volume / maxVol) * volH : 0;
+    ctx.globalAlpha = 0.35;
+    ctx.fillRect(x - bw / 2, padT + priceH + 8 + (volH - vh), bw, vh);
+    ctx.globalAlpha = 1;
+  });
+
+  // time axis
+  ctx.fillStyle = '#778093'; ctx.font = '10px ui-monospace, monospace';
+  const every = Math.ceil(bars.length / 6);
+  bars.forEach((b, i) => {
+    if (i % every !== 0) return;
+    const x = 8 + i * step;
+    const d = new Date(b.time);
+    const label = state.timeframe.endsWith('d') || state.timeframe.endsWith('w')
+      ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    ctx.fillText(label, x, H - 10);
+  });
+}
+
+/* ── interactions ──────────────────────────────────────────────────────── */
+function selectSymbol(sym) {
+  if (sym === state.activeSymbol) return;
+  state.activeSymbol = sym;
+  state.candles = [];
+  if (state.ws && state.wsState === 'connected') sub(`candles:${sym}:${state.timeframe}`);
+  loadCandles().then(renderAll).catch((e) => toast(e.message, 'err'));
+}
+
+function selectTimeframe(tf) {
+  state.timeframe = tf;
+  state.candles = [];
+  if (state.ws && state.wsState === 'connected') sub(`candles:${state.activeSymbol}:${tf}`);
+  loadCandles().then(() => { renderTfs(); drawChart(); }).catch((e) => toast(e.message, 'err'));
+}
+
+function renderTicket() {
+  const type = $('ord-type').value;
+  $('f-price').style.display = type === 'LIMIT' ? '' : 'none';
+  $('f-stop').style.display = type === 'STOP' ? '' : 'none';
+  $('btn-submit').className = 'submit ' + state.side.toLowerCase();
+  $('btn-submit').textContent = `Place ${state.side}`;
+}
+
+$('side-buy').onclick = () => { state.side = 'BUY'; $('side-buy').classList.add('active'); $('side-sell').classList.remove('active'); renderTicket(); };
+$('side-sell').onclick = () => { state.side = 'SELL'; $('side-sell').classList.add('active'); $('side-buy').classList.remove('active'); renderTicket(); };
+$('ord-type').onchange = renderTicket;
+$('watch-search').oninput = (e) => { state.filter = e.target.value; renderWatchlist(); };
+$('btn-reset').onclick = () => demoLogin(false);
+
+$('btn-submit').onclick = async () => {
+  const symbol = state.symbolByName.get(state.activeSymbol);
+  const body = {
+    accountId: state.accountId,
+    symbolName: state.activeSymbol,
+    side: state.side,
+    type: $('ord-type').value,
+    quantity: Number($('ord-qty').value),
+  };
+  if (!body.quantity || body.quantity <= 0) return toast('Enter a quantity', 'err');
+  if (body.type === 'LIMIT') body.price = Number($('ord-price').value) || undefined;
+  if (body.type === 'STOP') body.stopPrice = Number($('ord-stop').value) || undefined;
+  const tp = Number($('ord-tp').value), sl = Number($('ord-sl').value);
+  if (tp > 0) body.takeProfit = tp;
+  if (sl > 0) body.stopLoss = sl;
+  try {
+    const order = await api('/orders', { method: 'POST', body: JSON.stringify(body) });
+    toast(`${order.side} ${order.quantity} ${order.symbolName} → ${order.status}`, 'ok');
+    if (body.type === 'LIMIT' || body.type === 'STOP') {
+      const px = state.prices.get(state.activeSymbol);
+      if (px && body.type === 'LIMIT' && !body.price) $('ord-price').value = fmtPx(state.side === 'BUY' ? px.bid : px.ask, symbol?.digits);
+    }
+    refreshTrading();
+  } catch (e) {
+    toast(`${e.code ?? 'ERROR'}: ${e.message}`, 'err');
+  }
+};
+
+// prefill limit price with the live price when switching type
+$('ord-type').addEventListener('change', () => {
+  const px = state.prices.get(state.activeSymbol);
+  const symbol = state.symbolByName.get(state.activeSymbol);
+  if (!px) return;
+  if ($('ord-type').value === 'LIMIT') $('ord-price').value = Number((state.side === 'BUY' ? px.bid : px.ask).toFixed(symbol?.digits ?? 2));
+  if ($('ord-type').value === 'STOP') $('ord-stop').value = Number((state.side === 'BUY' ? px.ask * 1.002 : px.bid * 0.998).toFixed(symbol?.digits ?? 2));
+});
+
+window.addEventListener('resize', drawChart);
+
+/* ── go ────────────────────────────────────────────────────────────────── */
+renderTfs();
+boot().catch(async (e) => {
+  console.error(e);
+  const bootEl = $('boot');
+  if (bootEl) bootEl.innerHTML = `<div class="logo"><b>kryptto</b></div><p style="color:var(--down)">failed to start: ${e.message}</p>`;
+});
+</script>
+</body>
+</html>

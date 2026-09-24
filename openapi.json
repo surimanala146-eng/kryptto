@@ -1,0 +1,759 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/auth/register": {
+      "post": {
+        "operationId": "AuthController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create an account (auto-creates a paper trading account)",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Sign in with email + password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/demo": {
+      "post": {
+        "operationId": "AuthController_demoLogin",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Instant demo access — provisions a throwaway paper account",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Rotate the refresh token and get a new access token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Revoke a refresh token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Current user",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/accounts/me/list": {
+      "get": {
+        "operationId": "AccountsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "All paper accounts of the current user",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/accounts/templates": {
+      "get": {
+        "operationId": "AccountsController_templates",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Available account templates",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/accounts": {
+      "post": {
+        "operationId": "AccountsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAccountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new paper account from a template",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/accounts/{id}": {
+      "get": {
+        "operationId": "AccountsController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One account with live equity/margin",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/accounts/{id}/ledger": {
+      "get": {
+        "operationId": "AccountsController_ledger",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cash ledger (deposits, commissions, realized P&L)",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/accounts/{id}/fills": {
+      "get": {
+        "operationId": "AccountsController_fills",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Execution history",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/accounts/{id}/orders": {
+      "get": {
+        "operationId": "AccountsController_orders",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Order history (optionally filtered by status)",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/accounts/{id}/positions": {
+      "get": {
+        "operationId": "AccountsController_positions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Open positions with live marks",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/accounts/{id}/closed-positions": {
+      "get": {
+        "operationId": "AccountsController_closedPositions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Closed position records",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/accounts/{id}/equity-curve": {
+      "get": {
+        "operationId": "AccountsController_equityCurve",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Equity/balance history for charting",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/accounts/{id}/stats": {
+      "get": {
+        "operationId": "AccountsController_stats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Performance statistics (win rate, PF, drawdown…)",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/orders": {
+      "post": {
+        "operationId": "OrdersController_place",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaceOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Place an order (MARKET fills instantly; LIMIT/STOP rest until triggered)",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/orders/{id}": {
+      "delete": {
+        "operationId": "OrdersController_cancel",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel a resting order",
+        "tags": [
+          "orders"
+        ]
+      },
+      "patch": {
+        "operationId": "OrdersController_amend",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AmendProtectionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Amend take-profit / stop-loss on a resting order",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/api/positions/{id}": {
+      "patch": {
+        "operationId": "PositionsController_amend",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AmendProtectionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Amend take-profit / stop-loss on an open position",
+        "tags": [
+          "positions"
+        ]
+      }
+    },
+    "/api/positions/{id}/close": {
+      "post": {
+        "operationId": "PositionsController_close",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClosePositionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Close a position (fully or partially) at market",
+        "tags": [
+          "positions"
+        ]
+      }
+    },
+    "/api/market-data/symbols": {
+      "get": {
+        "operationId": "MarketDataController_listSymbols",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Symbol list"
+          }
+        },
+        "summary": "Tradable symbol registry with contract metadata",
+        "tags": [
+          "market-data"
+        ]
+      }
+    },
+    "/api/market-data/ticks": {
+      "get": {
+        "operationId": "MarketDataController_getTicks",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Latest bid/ask tick for every streaming symbol",
+        "tags": [
+          "market-data"
+        ]
+      }
+    },
+    "/api/market-data/ticks/{symbol}": {
+      "get": {
+        "operationId": "MarketDataController_getTick",
+        "parameters": [
+          {
+            "name": "symbol",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "BTCUSDT"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Latest bid/ask tick for one symbol",
+        "tags": [
+          "market-data"
+        ]
+      }
+    },
+    "/api/market-data/stats/{symbol}": {
+      "get": {
+        "operationId": "MarketDataController_getStats",
+        "parameters": [
+          {
+            "name": "symbol",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "BTCUSDT"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Rolling 24h statistics for one symbol",
+        "tags": [
+          "market-data"
+        ]
+      }
+    },
+    "/api/market-data/candles": {
+      "get": {
+        "operationId": "MarketDataController_getCandles",
+        "parameters": [
+          {
+            "name": "toMs",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "fromMs",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1710000000000
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 500
+            }
+          },
+          {
+            "name": "timeframe",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "1m",
+                "5m",
+                "15m",
+                "30m",
+                "1h",
+                "4h",
+                "1d",
+                "1w"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "symbol",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "BTCUSDT"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "OHLCV candle history for a symbol + timeframe",
+        "tags": [
+          "market-data"
+        ]
+      }
+    },
+    "/api/market-data/orderbook/{symbol}": {
+      "get": {
+        "operationId": "MarketDataController_getOrderBook",
+        "parameters": [
+          {
+            "name": "symbol",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "BTCUSDT"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Latest L2 order book snapshot (needs active stream interest)",
+        "tags": [
+          "market-data"
+        ]
+      }
+    },
+    "/api/market-data/trades/{symbol}": {
+      "get": {
+        "operationId": "MarketDataController_getRecentTrades",
+        "parameters": [
+          {
+            "name": "symbol",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "BTCUSDT"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Most recent public trades for a symbol",
+        "tags": [
+          "market-data"
+        ]
+      }
+    },
+    "/api/status": {
+      "get": {
+        "operationId": "StatusController_status",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Service health, market data source mode, connection counts",
+        "tags": [
+          "status"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "kryptto API",
+    "description": "Market data + paper trading backend for a TradingView-class terminal frontend. Auth with `POST /api/auth/demo` for instant access; open the WebSocket at /ws and subscribe to channels like `ticks`, `candles:BTCUSDT:1m`, `orderbook:BTCUSDT`, `account`.",
+    "version": "0.1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "RegisterDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RefreshDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "LogoutDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateAccountDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PlaceOrderDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "AmendProtectionDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ClosePositionDto": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  }
+}

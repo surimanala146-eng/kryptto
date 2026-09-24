@@ -1,0 +1,17 @@
+# dependencies
+node_modules/
+
+# builds
+dist/
+*.tsbuildinfo
+
+# runtime data (sqlite db)
+server/data/
+
+# env
+.env
+.env.local
+
+# logs / misc
+*.log
+.DS_Store
